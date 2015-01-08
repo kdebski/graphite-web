@@ -16,13 +16,26 @@ class RemoteStore(object):
   lastFailure = 0.0
   available = property(lambda self: time.time() - self.lastFailure > settings.REMOTE_RETRY_DELAY)
 
-  def __init__(self, host):
+  def __init__(self, host, rules = []):
     self.host = host
+    self.rulesEnabled = bool(rules)
+    self.rules = [re.compile(rule['pattern']) for rule in rules if host in rule['servers']]
 
   def find(self, query):
     request = FindRequest(self, query)
     request.send()
     return request
+
+  def isMatchingRules(self, query):
+    if not self.rulesEnabled:
+      return true
+    for rule in self.rules:
+      if rule.search(query):
+        return true
+    return false
+
+  def isAvailableForQuery(self, query):
+    return self.available and self.isMatchingRules(query)
 
   def fail(self):
     self.lastFailure = time.time()

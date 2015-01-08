@@ -27,10 +27,12 @@ class Store:
                  for finder_path in settings.STORAGE_FINDERS]
     self.finders = finders
 
+    rules = []
     if hosts is None:
       hosts = settings.CLUSTER_SERVERS
+      rules = settings.RELAY_RULES
     remote_hosts = [host for host in hosts if not is_local_interface(host)]
-    self.remote_stores = [ RemoteStore(host) for host in remote_hosts ]
+    self.remote_stores = [ RemoteStore(host, rules) for host in remote_hosts ]
 
 
   def find(self, pattern, startTime=None, endTime=None, local=False):
@@ -38,7 +40,7 @@ class Store:
 
     # Start remote searches
     if not local:
-      remote_requests = [ r.find(query) for r in self.remote_stores if r.available ]
+      remote_requests = [ r.find(query) for r in self.remote_stores if r.isAvailableForQuery(query) ]
 
     matching_nodes = set()
 
