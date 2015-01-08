@@ -1,6 +1,7 @@
 import socket
 import time
 import httplib
+import re
 from urllib import urlencode
 from threading import Lock, Event
 from django.conf import settings
@@ -11,39 +12,40 @@ from graphite.logger import log
 from graphite.util import unpickle
 
 
-
 class RemoteStore(object):
-  lastFailure = 0.0
-  available = property(lambda self: time.time() - self.lastFailure > settings.REMOTE_RETRY_DELAY)
+    lastFailure = 0.0
+    available = property(lambda self: time.time() - self.lastFailure > settings.REMOTE_RETRY_DELAY)
 
-  def __init__(self, host, rules = []):
-    self.host = host
-    self.rulesEnabled = bool(rules)
-    self.rules = [re.compile(rule['pattern']) for rule in rules if host in rule['servers']]
+    def __init__(self, host, rules = []):
+        self.host = host
+        self.rulesEnabled = bool(rules)
+        self.rules = []
+        if self.rulesEnabled:
+            self.rules = [re.compile(rule['pattern']) for rule in rules if host in rule['servers']]
 
-  def find(self, query):
-    request = FindRequest(self, query)
-    request.send()
-    return request
+    def find(self, query):
+        request = FindRequest(self, query)
+        request.send()
+        return request
 
-  def isMatchingRules(self, query):
-    if not self.rulesEnabled:
-      return true
-    for rule in self.rules:
-      if rule.search(query):
-        return true
-    return false
+    def isMatchingRules(self, query):
+        if not self.rulesEnabled:
+            return True
+        for rule in self.rules:
+            if rule.search(query):
+                return True
+        return False
 
-  def isAvailableForQuery(self, query):
-    return self.available and self.isMatchingRules(query)
+    def isAvailableForQuery(self, query):
+        return self.available and self.isMatchingRules(query)
 
-  def fail(self):
-    self.lastFailure = time.time()
+    def fail(self):
+        self.lastFailure = time.time()
 
 
 class FindRequest(object):
-  __slots__ = ('store', 'query', 'connection',
-               'failed', 'cacheKey', 'cachedResult')
+    __slots__ = ('store', 'query', 'connection',
+                 'failed', 'cacheKey', 'cachedResult')
 
   def __init__(self, store, query):
     self.store = store
