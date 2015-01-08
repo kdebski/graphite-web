@@ -13,34 +13,35 @@ from graphite.util import unpickle
 
 
 class RemoteStore(object):
-    lastFailure = 0.0
-    available = property(lambda self: time.time() - self.lastFailure > settings.REMOTE_RETRY_DELAY)
+  lastFailure = 0.0
+  available = property(lambda self: time.time() - self.lastFailure > settings.REMOTE_RETRY_DELAY)
 
-    def __init__(self, host, rules = []):
-        self.host = host
-        self.rulesEnabled = bool(rules)
-        self.rules = []
-        if self.rulesEnabled:
-            self.rules = [re.compile(rule['pattern']) for rule in rules if host in rule['servers']]
+  def __init__(self, host, rules = []):
+    self.host = host
+    self.rulesEnabled = bool(rules)
+    self.rules = []
+    if self.rulesEnabled:
+      self.rules = [re.compile(rule['pattern']) for rule in rules \
+                    if 'servers' in rule and 'pattern' in rule and host in rule['servers']]
 
     def find(self, query):
-        request = FindRequest(self, query)
-        request.send()
-        return request
+      request = FindRequest(self, query)
+      request.send()
+      return request
 
     def isMatchingRules(self, query):
-        if not self.rulesEnabled:
-            return True
-        for rule in self.rules:
-            if rule.search(query):
-                return True
-        return False
+      if not self.rulesEnabled:
+        return True
+      for rule in self.rules:
+        if rule.search(query):
+          return True
+      return False
 
     def isAvailableForQuery(self, query):
-        return self.available and self.isMatchingRules(query)
+      return self.available and self.isMatchingRules(query)
 
     def fail(self):
-        self.lastFailure = time.time()
+      self.lastFailure = time.time()
 
 
 class FindRequest(object):

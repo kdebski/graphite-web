@@ -36,3 +36,13 @@ class StorageTest(TestCase):
       remoteStore = RemoteStore('1.1.1.1', None)
       self.assertTrue(remoteStore.isMatchingRules('stats.test'))
       self.assertTrue(remoteStore.isAvailableForQuery('stats.test'))
+
+  def test_remotestore_with_invalid_array(self):
+      remoteStore = RemoteStore('1.1.1.1', [{'test':'test'}])
+      self.assertFalse(remoteStore.isMatchingRules('stats.test'))
+      self.assertFalse(remoteStore.isAvailableForQuery('stats.test'))
+
+  def test_remotestore_with_string_as_rules(self):
+      remoteStore = RemoteStore('1.1.1.1', "test")
+      self.assertFalse(remoteStore.isMatchingRules('stats.test'))
+      self.assertFalse(remoteStore.isAvailableForQuery('stats.test'))
